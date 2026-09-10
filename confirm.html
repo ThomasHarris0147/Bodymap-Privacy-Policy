@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#161826">
+<title>MuscleMap</title>
+<!--
+  Where the confirmation and password-reset emails land.
+
+  === This repo does not serve this file ====================================
+  Nothing here is hosted. The published site lives in a separate folder, and
+  this is the source that gets copied into it — so an edit here changes
+  nothing at all until it is copied across and pushed. If the page you are
+  looking at on the web does not match this file, that copy is what is stale.
+
+  It also exists at `web/confirm.html`, byte-identical, which is the copy
+  `flutter build web` picks up. Editing one means copying it over the other:
+
+    cp docs/confirm.html web/confirm.html
+    cmp docs/confirm.html web/confirm.html   # and then out to the site folder
+
+  === Why the page exists ===================================================
+  Supabase's /auth/v1/verify endpoint verifies the token and then redirects the
+  browser to whatever `emailRedirectTo` asked for. Pointing that straight at
+  `com.vessel.vessel://login-callback/` is what produces a blank, untitled tab:
+  a mail app's embedded browser has no handler registered for an unknown
+  scheme, and a server-side 302 into one carries no user gesture, so the
+  navigation is dropped silently. The account is confirmed; the user has no way
+  of knowing it.
+
+  So the redirect lands here instead - a real https page, which can always be
+  rendered - and it says what happened before handing the auth parameters to
+  the app behind a genuine tap.
+
+  Nothing is verified here and no secret is held here. The app uses the PKCE
+  flow, so the code verifier never leaves the device that started the sign-up
+  and the exchange can only ever happen inside the app. This page carries the
+  code the last few metres and nothing more.
+
+  Self-contained on purpose - no font, script or image is fetched - because it
+  is opened on gym wifi, where half a page loading is worse than none of it.
+  The mark below is the one `tool/make_icons.py` generates, inlined.
+
+  === The name ==============================================================
+  `BRAND` in the script below is the only place the app's name is written. It
+  mirrors `kAppName` in lib/core/branding.dart - change them together.
+-->
+<style>
+  /* Nocturne tokens, lifted from lib/theme/nocturne.dart. No ad-hoc hex. */
+  :root {
+    --bg: #161826;
+    --surface: #232532;
+    --text: #e9e9ed;
+    --accent: #9184d9;
+    --warn: #d9a084;
+
+    --n500: #9397ab;
+    --n800: #3f424d;
+    --a300: #d2cefd;
+
+    /* The deep indigo the body map uses for an untrained region. Here it is
+       one soft bloom behind the mark, which is the whole of the decoration. */
+    --section: #262a60;
+
+    --divider: rgba(233, 233, 237, 0.16);
+    --body-text: rgba(233, 233, 237, 0.85);
+
+    --r-md: 8px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    /* Inter first, for the devices that have it, so the page matches the app.
+       The stack behind it is what everyone else gets. Nothing is downloaded. */
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 18px calc(28px + env(safe-area-inset-bottom));
+  }
+
+  /* The bloom. Fixed rather than sitting on `main`, so a long card scrolls
+     past it instead of dragging it down the screen. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -30% 0 auto;
+    height: 62vh;
+    background: radial-gradient(60% 55% at 50% 0%, var(--section) 0%, transparent 72%);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  main { width: 100%; max-width: 420px; position: relative; z-index: 1; }
+
+  .mark { display: block; height: 72px; width: auto; margin: 0 0 22px; }
+
+  /* `.card-kicker` - 10px, wide tracking, accent. */
+  .kicker {
+    font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 7px;
+  }
+  .kicker.warn { color: var(--warn); }
+
+  /* T.heading(28): weight 500, -0.015em, line-height 1.12. */
+  h1 {
+    font-size: 28px; line-height: 1.12; letter-spacing: -0.42px;
+    font-weight: 500; margin: 0 0 10px;
+  }
+
+  p { margin: 0 0 12px; color: var(--body-text); }
+  p.quiet { color: var(--n500); font-size: 13px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* `.card` - surface on a hairline, as NCard draws it. */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--n800);
+    border-radius: var(--r-md);
+    padding: 13px 15px;
+    margin: 0 0 14px;
+  }
+  .card-title { font-size: 12px; color: var(--text); font-weight: 500; margin: 0 0 9px; }
+
+  /* Numbered steps, matching the "Check your inbox" screen in the app. */
+  .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 27px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: rgba(233, 233, 237, 0.8);
+  }
+  .steps li:last-child { margin-bottom: 0; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 1px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--n800);
+    color: var(--a300);
+    font-size: 10.5px; line-height: 16px; text-align: center;
+  }
+  .steps strong { color: var(--text); font-weight: 500; }
+
+  a.btn {
+    display: block; width: 100%; text-align: center; cursor: pointer;
+    font: inherit; font-size: 14px; font-weight: 500; line-height: 1.2;
+    padding: 12px 14px; border-radius: var(--r-md); margin: 0 0 10px;
+    background: transparent; border: 1px solid var(--divider);
+    color: var(--text); text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a.btn.primary { border-color: var(--accent); color: var(--accent); }
+  a.btn:active { background: rgba(145, 132, 217, 0.12); }
+
+  /* The signature rule: a hairline that fades to nothing at both ends. */
+  .rule {
+    height: 1px; margin: 20px 0 14px;
+    background: linear-gradient(90deg, transparent,
+      var(--divider) 14%, var(--divider) 86%, transparent);
+  }
+
+  /* "Opening MuscleMap..." - a live line rather than a silent jump, because
+     the deep link fires on its own and an unexplained flicker reads as a
+     fault. */
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--n500);
+    margin: 0 0 12px;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); flex: none;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; opacity: 1; } }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <img class="mark" alt="" src="data:image/png;base64,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">
+
+  <!-- Verified, with a code to hand to the app. -->
+  <section id="ok" hidden>
+    <p class="kicker">MUSCLEMAP</p>
+    <h1 id="ok-title">Email confirmed</h1>
+    <p id="ok-lead">Your account is live. Opening MuscleMap is the last step - it finishes signing you in.</p>
+
+    <div class="status" id="opening" hidden>
+      <span class="dot"></span>
+      <span id="opening-text">Opening MuscleMap...</span>
+    </div>
+
+    <a class="btn primary" id="open" href="#">Open MuscleMap</a>
+
+    <p class="quiet" id="ok-note">
+      Nothing happening? Open MuscleMap from your home screen and sign in with your email and
+      password - the account is confirmed either way.
+    </p>
+  </section>
+
+  <!-- The link did not work. -->
+  <section id="bad" hidden>
+    <p class="kicker warn">MUSCLEMAP</p>
+    <h1 id="bad-title">That link has expired</h1>
+    <p id="bad-lead">Confirmation links last 24 hours and can only be used once.</p>
+
+    <div class="card">
+      <p class="card-title">What to do</p>
+      <ol class="steps" id="bad-steps">
+        <li>Open MuscleMap.</li>
+        <li>Try signing in with your email and password - if you confirmed once already, you are in.</li>
+        <li>If it says the email is not confirmed, sign up again to get a fresh link.</li>
+      </ol>
+    </div>
+
+    <a class="btn" id="open-bad" href="#">Open MuscleMap</a>
+    <p class="quiet" id="bad-detail" hidden></p>
+  </section>
+
+  <!-- Opened with no parameters at all - somebody typing the URL in. -->
+  <section id="plain" hidden>
+    <p class="kicker">MUSCLEMAP</p>
+    <h1>Nothing to confirm here</h1>
+    <p>This is where the links in MuscleMap's emails land. Open the link from your inbox and it will do the rest.</p>
+    <a class="btn" id="open-plain" href="#">Open MuscleMap</a>
+  </section>
+
+  <div class="rule"></div>
+  <p class="quiet">
+    MuscleMap - a training log that reads your week and tells you what you left out.
+    Your log stays on your device and, with an account, in your account. Nothing else.
+  </p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // Mirrors kAppName in lib/core/branding.dart.
+  var BRAND = 'MuscleMap';
+
+  // Must match SupabaseConfig.mobileRedirect and the intent filter in
+  // android/app/src/main/AndroidManifest.xml. These three are identity rather
+  // than branding - see the note at the top of branding.dart - so they do not
+  // move when the name does.
+  var SCHEME = 'com.vessel.vessel';
+  var HOST = 'login-callback';
+  var PACKAGE = 'com.vessel.vessel';
+
+  var search = window.location.search || '';
+  var hash = window.location.hash || '';
+
+  /** Everything Supabase appended, from the query string and the fragment. */
+  function params() {
+    var out = {};
+    function read(s) {
+      s.replace(/^[?#]/, '').split('&').forEach(function (pair) {
+        if (!pair) return;
+        var i = pair.indexOf('=');
+        var k = decodeURIComponent(i < 0 ? pair : pair.slice(0, i));
+        var v = i < 0 ? '' : decodeURIComponent(pair.slice(i + 1).replace(/\+/g, ' '));
+        if (k) out[k] = v;
+      });
+    }
+    read(search);
+    read(hash);
+    return out;
+  }
+
+  var p = params();
+  var isAndroid = /android/i.test(navigator.userAgent);
+
+  /** The plain custom scheme: right everywhere, and the only form that can
+      carry an implicit-flow fragment. */
+  function schemeLink() {
+    return SCHEME + '://' + HOST + '/' + search + hash;
+  }
+
+  /** Android's intent: form. Names the package, so no other app can claim the
+      link, and falls back to this page rather than an error when the app is
+      not installed. It owns the '#', so it is only used when there is no
+      fragment to carry - which is the case for the PKCE flow the app uses. */
+  function intentLink() {
+    var fallback = window.location.origin + window.location.pathname;
+    return 'intent://' + HOST + '/' + search +
+      '#Intent;scheme=' + SCHEME +
+      ';package=' + PACKAGE +
+      ';S.browser_fallback_url=' + encodeURIComponent(fallback) +
+      ';end';
+  }
+
+  function appLink() { return (isAndroid && !hash) ? intentLink() : schemeLink(); }
+
+  function el(id) { return document.getElementById(id); }
+
+  function show(id) {
+    ['ok', 'bad', 'plain'].forEach(function (s) { el(s).hidden = (s !== id); });
+  }
+
+  function wire(id) {
+    var a = el(id);
+    if (a) { a.href = appLink(); a.textContent = 'Open ' + BRAND; }
+  }
+
+  /** The tab title. "Untitled" is exactly what a blank page looks like in a
+      tab strip, so every state names itself. */
+  function title(t) { document.title = t + ' - ' + BRAND; }
+
+  // Supabase says which flow this was in `type`, but not on every one of them:
+  // a PKCE redirect can arrive as nothing but `?code=`. So an unknown type
+  // gets wording that is true of either flow rather than a confident guess at
+  // one of them.
+  var type = p.type || '';
+  var isReset = type === 'recovery';
+  var isSignup = type === 'signup' || type === 'email' || type === 'email_change';
+  var hasCode = !!(p.code || p.access_token || p.token_hash);
+  var hasError = !!(p.error || p.error_code || p.error_description);
+
+  // --- The link did not work ---------------------------------------------
+  if (hasError) {
+    show('bad');
+    title('Link expired');
+
+    var expired = /expired/i.test(p.error_code || '') || /expired/i.test(p.error_description || '');
+    if (!expired) {
+      el('bad-title').textContent = 'That link did not work';
+      el('bad-lead').textContent =
+        'It may already have been used, or it was meant for a different account.';
+      title('Link did not work');
+    }
+
+    // A failed reset needs a different third step: there is no account to
+    // create, only a new link to ask for.
+    if (isReset) {
+      el('bad-lead').textContent = expired
+        ? 'Password reset links last one hour and can only be used once.'
+        : 'It may already have been used, or it was meant for a different account.';
+      el('bad-steps').innerHTML =
+        '<li>Open ' + BRAND + '.</li>' +
+        '<li>On the sign-in screen, choose <strong>Forgot password</strong>.</li>' +
+        '<li>Ask for a new link, and open it from your inbox within the hour.</li>';
+    }
+
+    if (p.error_description) {
+      var d = el('bad-detail');
+      d.textContent = p.error_description;
+      d.hidden = false;
+    }
+    wire('open-bad');
+    return;
+  }
+
+  // --- Somebody just opened the URL --------------------------------------
+  if (!hasCode) {
+    show('plain');
+    title('Nothing to confirm');
+    wire('open-plain');
+    return;
+  }
+
+  // --- Verified ----------------------------------------------------------
+  if (isReset) {
+    el('ok-title').textContent = 'Ready for a new password';
+    el('ok-lead').textContent =
+      'Opening ' + BRAND + ' is the last step - it asks you to choose a new password straight away.';
+    el('ok-note').textContent =
+      'Nothing happening? Open ' + BRAND + ' from your home screen and ask for the reset link again.';
+    title('Ready for a new password');
+  } else if (isSignup) {
+    el('ok-lead').textContent =
+      'Your account is live. Opening ' + BRAND + ' is the last step - it finishes signing you in.';
+    title('Email confirmed');
+  } else {
+    // Type unknown: say only what is certainly true of both flows.
+    el('ok-title').textContent = 'Link verified';
+    el('ok-lead').textContent =
+      'That worked. Opening ' + BRAND + ' is the last step - it picks up where the email left off.';
+    el('ok-note').textContent =
+      'Nothing happening? Open ' + BRAND + ' from your home screen - it will tell you what is left to do.';
+    title('Link verified');
+  }
+
+  show('ok');
+  wire('open');
+
+  // Try the app once without waiting to be asked. Where the browser allows it,
+  // the app is already open by the time anyone reads this; where it does not,
+  // nothing visible happens and the button is still there.
+  //
+  // The line below is why this is not silent: the screen may flicker, or a
+  // system dialog may appear, and an unexplained flicker reads as a fault.
+  var opening = el('opening');
+  opening.hidden = false;
+  el('opening-text').textContent = 'Opening ' + BRAND + '...';
+
+  window.setTimeout(function () {
+    try { window.location.href = appLink(); } catch (e) { /* the button remains */ }
+  }, 400);
+
+  // Still here a couple of seconds later means the jump did not take - the app
+  // is not installed, or the browser refused the scheme. Drop the line rather
+  // than leave a pulsing dot promising something that is not coming.
+  window.setTimeout(function () {
+    if (document.hidden) return;
+    opening.hidden = true;
+  }, 2400);
+})();
+</script>
+</body>
+</html>
