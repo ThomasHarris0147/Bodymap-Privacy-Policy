@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#161826">
-<title>MuscleMap</title>
+<title>Bodymap</title>
 <!--
   Where the confirmation and password-reset emails land.
 
@@ -175,7 +175,7 @@
       var(--divider) 14%, var(--divider) 86%, transparent);
   }
 
-  /* "Opening MuscleMap..." - a live line rather than a silent jump, because
+  /* "Opening Bodymap..." - a live line rather than a silent jump, because
      the deep link fires on its own and an unexplained flicker reads as a
      fault. */
   .status {
@@ -191,6 +191,31 @@
   @keyframes pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
   @media (prefers-reduced-motion: reduce) { .dot { animation: none; opacity: 1; } }
 
+  /* The link itself, when it has to be carried to another device by hand.
+     `user-select: all` so one tap or click takes the whole thing - a
+     part-selected auth code is worse than none. */
+  .url {
+    display: block; width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--n800);
+    border-radius: var(--r-md);
+    padding: 10px 12px; margin: 0 0 10px;
+    color: var(--a300);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.5;
+    word-break: break-all;
+    -webkit-user-select: all; user-select: all;
+  }
+
+  /* A quiet way out of a wrong guess about the device. Rendered as a button
+     so it is reachable by keyboard, styled as the link it reads as. */
+  .alt {
+    display: inline-block; margin: 2px 0 0; padding: 0;
+    font: inherit; font-size: 12.5px; color: var(--n500);
+    background: none; border: 0; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -200,53 +225,84 @@
 
   <!-- Verified, with a code to hand to the app. -->
   <section id="ok" hidden>
-    <p class="kicker">MUSCLEMAP</p>
+    <p class="kicker">BODYMAP</p>
     <h1 id="ok-title">Email confirmed</h1>
-    <p id="ok-lead">Your account is live. Opening MuscleMap is the last step - it finishes signing you in.</p>
+    <p id="ok-lead">Your account is live. Opening Bodymap is the last step - it finishes signing you in.</p>
 
     <div class="status" id="opening" hidden>
       <span class="dot"></span>
-      <span id="opening-text">Opening MuscleMap...</span>
+      <span id="opening-text">Opening Bodymap...</span>
     </div>
 
-    <a class="btn primary" id="open" href="#">Open MuscleMap</a>
+    <a class="btn primary" id="open" href="#">Open Bodymap</a>
 
     <p class="quiet" id="ok-note">
-      Nothing happening? Open MuscleMap from your home screen and sign in with your email and
+      Nothing happening? Open Bodymap from your home screen and sign in with your email and
       password - the account is confirmed either way.
     </p>
+
+    <!-- Opened on a computer. There is no app here to hand the code to, and
+         no amount of tapping the button above will make one appear - so the
+         button is replaced rather than left to fail silently.
+
+         The link below is worth carrying across. The one in the email has
+         already been spent reaching this page, but the code it redirected to
+         has not: the app on the phone still holds the PKCE verifier that can
+         exchange it. That turns "request another email" into "paste this". -->
+    <div id="desk" hidden>
+      <div class="card">
+        <p class="card-title">Finish this on your phone</p>
+        <ol class="steps">
+          <li>Copy the link below.</li>
+          <li>Send it to yourself - a message, a note, whatever is quickest.</li>
+          <li>Open it on <strong>the phone you started this from</strong>, and Bodymap takes over.</li>
+        </ol>
+      </div>
+
+      <code class="url" id="desk-url"></code>
+      <a class="btn primary" id="copy" href="#">Copy link</a>
+
+      <p class="quiet">
+        Sooner rather than later: the link in the email has been used up getting this far, and the
+        one above does not last long.
+      </p>
+
+      <button class="alt" id="im-mobile" type="button">I am on my phone - open the app</button>
+    </div>
   </section>
 
   <!-- The link did not work. -->
   <section id="bad" hidden>
-    <p class="kicker warn">MUSCLEMAP</p>
+    <p class="kicker warn">BODYMAP</p>
     <h1 id="bad-title">That link has expired</h1>
     <p id="bad-lead">Confirmation links last 24 hours and can only be used once.</p>
 
     <div class="card">
       <p class="card-title">What to do</p>
       <ol class="steps" id="bad-steps">
-        <li>Open MuscleMap.</li>
+        <li>Open Bodymap.</li>
         <li>Try signing in with your email and password - if you confirmed once already, you are in.</li>
         <li>If it says the email is not confirmed, sign up again to get a fresh link.</li>
       </ol>
     </div>
 
-    <a class="btn" id="open-bad" href="#">Open MuscleMap</a>
+    <a class="btn" id="open-bad" href="#">Open Bodymap</a>
+    <p class="quiet" id="bad-desk" hidden>Bodymap is a phone app - do this on your phone.</p>
     <p class="quiet" id="bad-detail" hidden></p>
   </section>
 
   <!-- Opened with no parameters at all - somebody typing the URL in. -->
   <section id="plain" hidden>
-    <p class="kicker">MUSCLEMAP</p>
+    <p class="kicker">BODYMAP</p>
     <h1>Nothing to confirm here</h1>
-    <p>This is where the links in MuscleMap's emails land. Open the link from your inbox and it will do the rest.</p>
-    <a class="btn" id="open-plain" href="#">Open MuscleMap</a>
+    <p>This is where the links in Bodymap's emails land. Open the link from your inbox and it will do the rest.</p>
+    <a class="btn" id="open-plain" href="#">Open Bodymap</a>
+    <p class="quiet" id="plain-desk" hidden>Bodymap is a phone app - open the email on your phone.</p>
   </section>
 
   <div class="rule"></div>
   <p class="quiet">
-    MuscleMap - a training log that reads your week and tells you what you left out.
+    Bodymap - a training log that reads your week and tells you what you left out.
     Your log stays on your device and, with an account, in your account. Nothing else.
   </p>
 </main>
@@ -256,7 +312,7 @@
   'use strict';
 
   // Mirrors kAppName in lib/core/branding.dart.
-  var BRAND = 'MuscleMap';
+  var BRAND = 'Bodymap';
 
   // Must match SupabaseConfig.mobileRedirect and the intent filter in
   // android/app/src/main/AndroidManifest.xml. These three are identity rather
@@ -287,7 +343,19 @@
   }
 
   var p = params();
-  var isAndroid = /android/i.test(navigator.userAgent);
+  var ua = navigator.userAgent || '';
+  var isAndroid = /android/i.test(ua);
+
+  // iPadOS reports itself as a Mac, so the touch count is the only thing that
+  // separates it from a desktop Safari.
+  var isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+
+  // Sniffing is a guess, and it is wrong often enough to matter - a phone in
+  // desktop mode looks like a laptop from here. So it only ever changes what
+  // is *offered first*, and every desktop branch keeps a way back to the app
+  // link. Nothing is taken away on the strength of a user-agent string.
+  var isMobile = isAndroid || isIOS;
 
   /** The plain custom scheme: right everywhere, and the only form that can
       carry an implicit-flow fragment. */
@@ -324,6 +392,84 @@
   /** The tab title. "Untitled" is exactly what a blank page looks like in a
       tab strip, so every state names itself. */
   function title(t) { document.title = t + ' - ' + BRAND; }
+
+  /** Puts the link somewhere it can be taken to the phone by hand. Falls back
+      to selecting the box when the clipboard is not available - which is most
+      of the time on plain http, where `navigator.clipboard` is undefined. */
+  function copyLink(button) {
+    var url = window.location.href;
+    var reset = function (label) {
+      button.textContent = label;
+      window.setTimeout(function () { button.textContent = 'Copy link'; }, 2200);
+    };
+    var select = function () {
+      try {
+        var range = document.createRange();
+        range.selectNodeContents(el('desk-url'));
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        reset('Selected - press Ctrl/Cmd + C');
+      } catch (e) {
+        // The box is `user-select: all`, so it is still one click away.
+        reset('Select the link above and copy it');
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { reset('Copied'); }, select);
+    } else {
+      select();
+    }
+  }
+
+  /** Fires the deep link, and says so while it does. */
+  function openApp() {
+    var opening = el('opening');
+    opening.hidden = false;
+    el('opening-text').textContent = 'Opening ' + BRAND + '...';
+
+    window.setTimeout(function () {
+      try { window.location.href = appLink(); } catch (e) { /* the button remains */ }
+    }, 400);
+
+    // Still here a couple of seconds later means the jump did not take - the
+    // app is not installed, or the browser refused the scheme. Drop the line
+    // rather than leave a pulsing dot promising something that is not coming.
+    window.setTimeout(function () {
+      if (document.hidden) return;
+      opening.hidden = true;
+    }, 2400);
+  }
+
+  /** The computer case. The button is swapped for the link itself, because
+      the useful thing a desktop can do here is hand the code to the phone. */
+  function offerToCarryItOver() {
+    el('open').hidden = true;
+    el('ok-note').hidden = true;
+
+    var desk = el('desk');
+    desk.hidden = false;
+    el('desk-url').textContent = window.location.href;
+    el('copy').addEventListener('click', function (e) {
+      e.preventDefault();
+      copyLink(el('copy'));
+    });
+
+    // Both flows store their PKCE verifier on the device that started them, so
+    // "your phone" is never good enough on its own - it has to be the same
+    // one. See lib/core/supabase_config.dart and gotrue's
+    // `exchangeCodeForSession`, which reads the verifier out of local storage.
+    el('ok-lead').textContent =
+      'That worked. The last step happens inside ' + BRAND + ', which means finishing it on the ' +
+      'phone you started from - the code below can only be used there.';
+
+    el('im-mobile').addEventListener('click', function () {
+      desk.hidden = true;
+      el('open').hidden = false;
+      el('ok-note').hidden = false;
+      openApp();
+    });
+  }
 
   // Supabase says which flow this was in `type`, but not on every one of them:
   // a PKCE redirect can arrive as nothing but `?code=`. So an unknown type
@@ -366,6 +512,12 @@
       d.hidden = false;
     }
     wire('open-bad');
+    // Nothing here to carry to the phone - there is no code, only advice - so
+    // the dead button goes and the advice says where to follow it.
+    if (!isMobile) {
+      el('open-bad').hidden = true;
+      el('bad-desk').hidden = false;
+    }
     return;
   }
 
@@ -374,6 +526,10 @@
     show('plain');
     title('Nothing to confirm');
     wire('open-plain');
+    if (!isMobile) {
+      el('open-plain').hidden = true;
+      el('plain-desk').hidden = false;
+    }
     return;
   }
 
@@ -402,27 +558,17 @@
   show('ok');
   wire('open');
 
+  // On a computer, firing a custom scheme achieves nothing at best and raises
+  // a "no application found" dialog at worst, so it is not attempted.
+  if (!isMobile) {
+    offerToCarryItOver();
+    return;
+  }
+
   // Try the app once without waiting to be asked. Where the browser allows it,
   // the app is already open by the time anyone reads this; where it does not,
   // nothing visible happens and the button is still there.
-  //
-  // The line below is why this is not silent: the screen may flicker, or a
-  // system dialog may appear, and an unexplained flicker reads as a fault.
-  var opening = el('opening');
-  opening.hidden = false;
-  el('opening-text').textContent = 'Opening ' + BRAND + '...';
-
-  window.setTimeout(function () {
-    try { window.location.href = appLink(); } catch (e) { /* the button remains */ }
-  }, 400);
-
-  // Still here a couple of seconds later means the jump did not take - the app
-  // is not installed, or the browser refused the scheme. Drop the line rather
-  // than leave a pulsing dot promising something that is not coming.
-  window.setTimeout(function () {
-    if (document.hidden) return;
-    opening.hidden = true;
-  }, 2400);
+  openApp();
 })();
 </script>
 </body>
